@@ -3,13 +3,16 @@ import './App.css';
 import { onboard } from './wallet';
 import { useEffect, useState } from 'react';
 import Web3 from 'web3'
-import { Button, Center, Flex, Input, Box, chakra } from '@chakra-ui/react'
+import Navbar from './Navbar'
+import { Button, Center, Flex, Input, Box, Badge, chakra } from '@chakra-ui/react'
 
 const subnets = [
   { id: 1, alias: 'orkun'},
   { id: 1, alias: 'orkun'},
   { id: 1, alias: 'orkun'},
-  { id: 1, alias: 'orkun'},
+  { id: 1, subnet_id: 'net_1233'},
+  { id: 1, subnet_id: 'net_1233'},
+  { id: 1, subnet_id: 'net_1233'},
 ]
 const ListItem = chakra(Box, {
   baseStyle: {
@@ -46,6 +49,15 @@ function App() {
     setWallet(wal[0])
   }
 
+  async function disconnectWallet() {
+    const [primaryWallet] = await onboard.state.get().wallets;
+    if (!primaryWallet) return;
+    await onboard.disconnectWallet({ label: primaryWallet.label });
+    setWallet(null)
+    setWeb3(null)
+    setAccount(null)
+  }
+
   async function initWeb3() {
     const web3 = new Web3(wallet.provider)
     setWeb3(web3)
@@ -64,23 +76,28 @@ function App() {
   }
 
   return (
-    <Box className="App" m={5}>
+    <>
+      <Navbar initWalletConnection={initWalletConnection} disconnectWallet={disconnectWallet} account={account}/>
+      <Box className="App" m={5} >
       
       <Flex flexDir={'column'} alignItems='stretch' justifyContent='start' w='100vw' h='100vh'>
         <Center mb={5} w='75%' alignSelf='center'>
           <Input mr={5} placeholder='Please enter the name or id of subnet'/>
-          <Button colorScheme='blue' onClick={search}>Search</Button>
+          <Button colorScheme='blue' onClick={sendTransaction}>Search</Button>
         </Center>
         <Flex flexDir='column' alignItems='center'>
           {subnets.map(subnet => (
             <ListItem key={subnet.id}>
-              {subnet.alias}
+              {subnet.alias ? subnet.alias : subnet.subnet_id}
+              {subnet.alias && <Badge colorScheme='green'>Verified</Badge>}
             </ListItem>
           ))}
         </Flex>
       </Flex>
 
     </Box>
+    </>
+    
   );
 }
 
