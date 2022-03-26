@@ -33,7 +33,7 @@ const { sendMail, sendWebhook } = require('../functions/send');
       15: now + (15 * 24 * 60 * 60 * 1000),
       30: now + (30 * 24 * 60 * 60 * 1000),
     }
-    for(const dateKey in dates.reverse()) {
+    for(const dateKey in dates) {
       if(dates[dateKey] < endTime && period > dateKey) {
         if(ntf) {
           await Notification.findOneAndUpdate({validator: ntf.validator}, {period: dateKey})

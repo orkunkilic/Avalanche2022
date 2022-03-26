@@ -1,5 +1,6 @@
 
 const nodemailer = require('nodemailer')
+const axios = require('axios')
 
 const sendMail = async (type, address, id, left, subnetId) => {
     const mailer = nodemailer.createTransport({
@@ -75,7 +76,7 @@ const sendWebhook = async (type, address, id, left, subnetId) => {
   
   }
 
-module.export = {
+module.exports = {
     sendMail,
     sendWebhook
 }

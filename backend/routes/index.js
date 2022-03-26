@@ -106,7 +106,7 @@ router.get('/dailyCheck', async (req, res, next) => {
   if (  req.headers.authorization !== 'Basic eW91cmxvZ2luOnlvdXJwYXNzd29yZA==') // we do not need complicated auth system for one route    
     return res.status(401).send('Authentication required.') // Access denied.
 
-  const subnets = await Subnet.find({}).populate('validators')
+  const subnets = await Subnet.find({})
   for(const subnet of subnets) {
     const validators = await getValidatorsOfSubnet(subnet.subnet_id)
     const validatorsWithProps = await getPropsOfValidators(validators)

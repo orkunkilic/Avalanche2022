@@ -1,0 +1,13 @@
+ 
+service: daily-validator-check
+provider:
+  name: aws
+  runtime: nodejs12.x
+  environment:
+    auth: eW91cmxvZ2luOnlvdXJwYXNzd29yZA== 
+
+functions:
+  exec:
+    handler: daily.handler
+    events:
+      - schedule: rate(1 day)
