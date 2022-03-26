@@ -1,5 +1,13 @@
+
+
 export const post = async (url, data) => {
-    const response = await fetch('http://localhost:3000/'+url, {
+    let base;
+    if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+        base = 'http://localhost:3000/'
+    } else {
+        base = 'https://expirydator.herokuapp.com/'
+    }
+    const response = await fetch(base+url, {
         method: 'POST',
         headers: {
         'Content-Type': 'application/json',

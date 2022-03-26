@@ -15,9 +15,9 @@ export const onboard = Onboard({
     },
   ],
   appMetadata: {
-    name: 'Validator Notifier',
+    name: 'ExpiryDator',
     icon: myIcon, // svg string icon
-    description: 'Swap tokens for other tokens',
+    description: 'Get notified when validators of your subnet is about to expire',
     recommendedInjectedWallets: [
       { name: 'Coinbase', url: 'https://wallet.coinbase.com/' }
     ]
@@ -26,7 +26,7 @@ export const onboard = Onboard({
     en: {
       connect: {
         selectingWallet: {
-          header: 'custom text header'
+          header: 'Connect your wallet'
         }
       }
     }
