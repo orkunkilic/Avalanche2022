@@ -4,32 +4,37 @@ const avalancheP = require('../utils/avalanche')
 const mongoose = require('mongoose')
 const connectDB = require('../utils/db')
 const Subnet = require('../models/subnet.js')
-const Validator = require('../models/validator.js')
 const Tx = require('../models/tx.js')
 const axios = require('axios');
 const Notification = require('../models/notification');
+const { sendMail, sendWebhook } = require('../functions/send');
+const { getYearOldSubscribers, checks, getSubnetDetails, createSubnet, getValidatorsOfSubnet, getPropsOfValidators, addMail, addWebhook } = require('../functions/functions')
 
-router.get('/:id', async (req, res) => {
+router.get('/subnet/:id', async (req, res) => {
   const id = req.params.id
-  let subnet = await Subnet.findById(id)|| await Subnet.findOne({subnet_id: id})
-  if(!subnet) {
-    subnet = await getSubnetDetails(id)
-  } else {
-    subnet = {alias: subnet.alias, ...await getSubnetDetails(subnet.subnet_id)}
+  try {
+    let subnet = await Subnet.findById(id)|| await Subnet.findOne({subnet_id: id})
+    if(!subnet) {
+      subnet = await getSubnetDetails(id)
+    } else {
+      subnet = {alias: subnet.alias, _id: subnet._id, ...await getSubnetDetails(subnet.subnet_id)}
+    }
+    return res.json(subnet)
+  } catch (error) {
+    res.json(error)
   }
-  res.json(subnet)
+
 })
 
-/* GET home page. */
 router.get('/', async (req, res, next) => {
   try {
     const subnetsFromChain = await avalancheP.getSubnets();
-    const subnetsFromDB = await Subnet.find({})
+    const subnetsFromDB = await Subnet.find({}, {subnet_id:1, alias:1})
     const unRegisteredSubnets = subnetsFromChain.filter(subnet => {
-      return !subnetsFromDB.find(subnetFromDB => subnetFromDB.subnet_id === subnet.subnet_id);
+      return !subnetsFromDB.find(subnetFromDB => subnetFromDB.subnet_id === subnet.id);
     })
 
-    res.json({subnetsFromDB, unRegisteredSubnets})
+    res.json([...subnetsFromDB, ...unRegisteredSubnets])
   
   } catch (error) {
     res.json(error)
@@ -37,19 +42,30 @@ router.get('/', async (req, res, next) => {
 });
 
 router.post('/register', async (req, res, next) => {
-  let { subnet_id } = req.query
-  const { alias } = req.body
+  const { subnet_id, name, tx_id } = req.body
+  const txRecord = await Tx.findOne({tx_id})
+  if(txRecord) {
+    return res.status(400).json({error: "Tx already exists"})
+  }
 
   if(!subnet_id) {
     return res.status(400).json({error: "Missing fields"})
   }
-    const subnet = await createSubnet(subnet_id, alias) 
-    res.json(subnet)
+  const tx = await axios.get(`https://api.covalenthq.com/v1/43113/transaction_v2/${tx_id}/?key=ckey_8ad51b914d3e4cec8f6ab99d9db`)
+  const value = (tx.data.data.items[0].value) / 10**18
+  if(value < 0.1) {
+    return res.status(400).json({error: "Value is too low"})
+  }
+  
+  const txDB = new Tx({tx_id})
+  await txDB.save()
+
+  const subnet = await createSubnet(subnet_id, name) 
+  res.json(subnet)
 })
 
 router.post('/subscribe', async (req, res, next) => {
-  const { id } = req.query
-  const { mail, webhook, tx_id } = req.body
+  const { id, mail, webhook, tx_id } = req.body
   const txRecord = await Tx.findOne({tx_id})
   if(txRecord) {
     return res.status(400).json({error: "Tx already exists"})
@@ -59,15 +75,20 @@ router.post('/subscribe', async (req, res, next) => {
     return res.status(400).json({error: "Missing fields"})
   }  
 
-  const tx = await axios.get(`https://api.covalenthq.com/v1/43114/transaction_v2/${tx_id}/?key=ckey_8ad51b914d3e4cec8f6ab99d9db`)
-  const event = (tx.data.data.items[0].log_events[0].decoded)
+  const tx = await axios.get(`https://api.covalenthq.com/v1/43113/transaction_v2/${tx_id}/?key=ckey_8ad51b914d3e4cec8f6ab99d9db`)
   const value = (tx.data.data.items[0].value) / 10**18
-
-  if(true) { //if tx events are correct
-    const tx = new Tx({tx_id})
-    await tx.save()
+  if(mail && webhook) {
+    if(value < 0.02) {
+      return res.status(400).json({error: "Value is too low"})
+    }
+  } else {
+    if(value < 0.01) {
+      return res.status(400).json({error: "Value is too low"})
+    }
   }
-  //make their comparison
+  const txDB = new Tx({tx_id})
+  await txDB.save()
+
 
   let updated;
   if(mail) {
@@ -87,16 +108,8 @@ router.get('/dailyCheck', async (req, res, next) => {
 
   const subnets = await Subnet.find({}).populate('validators')
   for(const subnet of subnets) {
-    //const validators = subnet.validators
     const validators = await getValidatorsOfSubnet(subnet.subnet_id)
     const validatorsWithProps = await getPropsOfValidators(validators)
-  /*   const validatorsToBeDeleted = validators.filter(validator => {
-      return !validatorsOnNetwork.find(validatorOnNetwork => validatorOnNetwork.nodeID === validator.node_id)
-    })
-    for(const validator of validatorsToBeDeleted) {
-      await Validator.findOneAndDelete({address: validator.address})
-    }
-    */
     for(const validator of validatorsWithProps) {
       const ntf = await Notification.findOne({node_id: validator.node_id});
       const check = checks(validator.end_time, ntf)
@@ -105,132 +118,38 @@ router.get('/dailyCheck', async (req, res, next) => {
           sendMail(1, address, validator.node_id, left, subnet.subnet_id)
         }
         for(webhook of subnet.subscribers.webhook) {
+          if(address)
           sendWebhook(1, url, validator.node_id, left, subnet.subnet_id)
         }
       }
       if(validator.uptime < 0.5) {
         for(address of subnet.subscribers.mail){
-          sendMail(2, address, validator.node_id, left, subnet.subnet_id)
+          sendMail(2, address, validator.node_id, null, subnet.subnet_id)
         }
         for(webhook of subnet.subscribers.webhook) {
-          sendWebhook(2, url, validator.node_id, left, subnet.subnet_id)
+          sendWebhook(2, url, validator.node_id, null, subnet.subnet_id)
         }
       }
     }
   }
+  const yearOldSubscribers = await getYearOldSubscribers();
+  if(yearOldSubscribers.length > 0) {
+    for(const subnet of yearOldSubscribers){
+      for(const mail of subnet.subscribers.mail) {
+        sendMail(3, mail.address, null, null, subnet.subnet_id)
+        await Subnet.updateOne({_id: subnet._id}, {subscribers: {$pull: {mail: {_id: mail._id}}}})
+      }
+      for(const webhook of subnet.subscribers.webhook) {
+        sendWebhook(3, webhook.url, null, null, subnet.subnet_id)
+        await Subnet.updateOne({_id: subnet._id}, {subscribers: {$pull: {webhook: {_id: webhook._id}}}})
+      }
+    }
+  }
+
+
   res.json({message: "done"})
 })
 
-//make this util
-const checks = async (endTime, ntf) => {
-  const now = Date.now()
-  const period = ntf ? ntf.period : 31
-  //reverse object keys and take it from config file
-  const dates = {
-    30: now - (30 * 24 * 60 * 60 * 1000),
-    15: now - (15 * 24 * 60 * 60 * 1000),
-    5: now - (5 * 24 * 60 * 60 * 1000),
-    3: now - (3 * 24 * 60 * 60 * 1000),
-    1: now - (1 * 24 * 60 * 60 * 1000),
-  }
-  for(const dateKey in dates.reverse()) {
-    if(dates[dateKey] < endTime && period > dateKey) {
-      if(ntf) {
-        await Notification.findOneAndUpdate({validator: ntf.validator}, {period: dateKey})
-      } else {
-        const ntf = new Notification({validator: ntf.validator})
-        await ntf.save()
-      }
-      return {send:true, left:dateKey}
-    }
-  }
-}
 
-const getSubnetDetails = async (subnet_id) => {
-  const validatorOfSubnet = await getValidatorsOfSubnet(subnet_id)
-  const validatorWithProps = await getPropsOfValidators(validatorOfSubnet)
-
-  return {subnet_id, validators:validatorWithProps}
-
-}
-const createSubnet = async(subnet_id, alias) => {
-  /* const validatorOfSubnet = await getValidatorsOfSubnet(subnet_id)
-  const validatorWithProps = await getPropsOfValidators(validatorOfSubnet)
-  //console.log(validatorWithProps)
-  const validatorIds = await addValidators(validatorWithProps)
-  console.log("valIds:>>", validatorIds) */
-  const subnet = new Subnet({
-    subnet_id: subnet_id,
-    alias: alias,
-    //validators: validatorIds,
-  })
-  await subnet.save()
-  return subnet
-}
-
-const addValidators = async (validators) => {
-  console.log("start add vals")
-  const valIds = []
-  for(const val of validators) {
-    console.log("val:>>", val)
-    let validator = await Validator.findOne({
-      node_id: val.node_id
-    })
-    if(!validator) {
-      console.log(val)
-      validator = await createValidators(val)
-      console.log("val added!", validator)
-    }
-    valIds.push(validator.id)
-  }
-  return valIds
-}
-
-const createValidators = async (val) => {
-  let validator = new Validator(val)
-  validator = await validator.save()
-  console.log("val added!")
-  return validator
-}
-
-const getValidatorsOfSubnet = async (subnet_id) => {
-  return (await avalancheP.getCurrentValidators(subnet_id)).validators
-}
-
-//pick properties from validator array of objects
-const getPropsOfValidators = (validators) => {
-  return validators.map(val => {
-    return {
-      node_id: val.nodeID,
-      tx_id: val.txID,
-      start_time: val.startTime,
-      end_time: val.endTime,
-      uptime: val.uptime,
-    }
-  })
-}
-
-const addMail = async (id, mail) => {
-  const updated = await Subnet.findByIdAndUpdate(id, {
-    $push: {
-      "subscribers.mail": {
-        address: mail,
-        subscribed_at: Date.now()
-      }
-    }
-  }, {new: true})
-  if(updated) return true;
-}
-const addWebhook = async (id, webhook_url) => {
-  const updated = await Subnet.findByIdAndUpdate(id, {
-    $push: {
-      "subscribers.webhook": {
-        url: webhook_url,
-        subscribed_at: Date.now()
-      }
-    }
-  })
-  if(updated) return true;
-}
 
 module.exports = router;

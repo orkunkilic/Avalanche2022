@@ -1,47 +1,35 @@
-import logo from './logo.svg';
-import './App.css';
 import { onboard } from './wallet';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link
+} from "react-router-dom";
+
+import Index from './pages/Index';
 import Web3 from 'web3'
 import Navbar from './Navbar'
 import { Button, Center, Flex, Input, Box, Badge, chakra } from '@chakra-ui/react'
+import { Web3Context } from './hooks/web3Context';
+import Details from './pages/Details';
 
-const subnets = [
-  { id: 1, alias: 'orkun'},
-  { id: 1, alias: 'orkun'},
-  { id: 1, alias: 'orkun'},
-  { id: 1, subnet_id: 'net_1233'},
-  { id: 1, subnet_id: 'net_1233'},
-  { id: 1, subnet_id: 'net_1233'},
-]
-const ListItem = chakra(Box, {
-  baseStyle: {
-    border: '1px solid',
-    borderColor: 'gray.200',
-    width: '90%',
-    padding: '1rem',
-    marginBottom: '1rem',
-    cursor: 'pointer',
-    borderRadius: 'xl',
-    justifyContent: 'start'
-  },
-});
 function App() {
   const [wallet, setWallet] = useState(null);
   const [web3, setWeb3] = useState(null);
   const [account, setAccount] = useState(null);
+ 
   useEffect(() => {
     async function init() {
-      await initWeb3()
+      const web3Instance = new Web3(wallet.provider)
+      setAccount(web3Instance.eth.accounts.currentProvider.selectedAddress)
+      setWeb3(web3Instance)
     }
     if(wallet) {
       init()
     }
   }, [wallet])
-  
-  async function search() {
 
-  }
 
   async function initWalletConnection() {
     const wal = await onboard.connectWallet()
@@ -58,12 +46,6 @@ function App() {
     setAccount(null)
   }
 
-  async function initWeb3() {
-    const web3 = new Web3(wallet.provider)
-    setWeb3(web3)
-    setAccount(web3.eth.accounts.currentProvider.selectedAddress)
-  }
-
   async function sendTransaction() {
     console.log(web3)
     console.log(account)
@@ -76,28 +58,20 @@ function App() {
   }
 
   return (
-    <>
-      <Navbar initWalletConnection={initWalletConnection} disconnectWallet={disconnectWallet} account={account}/>
-      <Box className="App" m={5} >
-      
-      <Flex flexDir={'column'} alignItems='stretch' justifyContent='start' w='100vw' h='100vh'>
-        <Center mb={5} w='75%' alignSelf='center'>
-          <Input mr={5} placeholder='Please enter the name or id of subnet'/>
-          <Button colorScheme='blue' onClick={sendTransaction}>Search</Button>
-        </Center>
-        <Flex flexDir='column' alignItems='center'>
-          {subnets.map(subnet => (
-            <ListItem key={subnet.id}>
-              {subnet.alias ? subnet.alias : subnet.subnet_id}
-              {subnet.alias && <Badge colorScheme='green'>Verified</Badge>}
-            </ListItem>
-          ))}
-        </Flex>
-      </Flex>
+    <Web3Context.Provider value={web3}>
+    <Flex flexDir='column' className="App" backgroundColor='#6e0707' justifyContent='center'>
+    <Navbar initWalletConnection={initWalletConnection} disconnectWallet={disconnectWallet} account={account}/>
+    <Routes>
+      <Route path="/" element= {
+        <Index />
+      } />
+      <Route path="/subnet/:id" element= {
+        <Details />
+      } />
+    </Routes>   
+    </Flex>
+    </Web3Context.Provider>
 
-    </Box>
-    </>
-    
   );
 }
 
