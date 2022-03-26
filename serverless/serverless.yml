@@ -7,7 +7,7 @@ provider:
     auth: eW91cmxvZ2luOnlvdXJwYXNzd29yZA== 
 
 functions:
-  exec:
-    handler: daily.handler
-    events:
-      - schedule: rate(1 day)
+  handler:
+    daily: daily.handler
+  events:
+    - schedule: rate(1 day)

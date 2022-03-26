@@ -1,4 +1,5 @@
-exports.handler = async function (event, context) {
+'use strict'
+module.exports.handler = async function (event, context) {
   fetch('https://expirydator.herokuapp.com/dailyCheck', {
     method: 'GET',
     headers: {
