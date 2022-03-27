@@ -31,7 +31,7 @@ export default function SubscribeModal({isOpen, onClose, subnetDetails}) {
             setStep(1)
             const res = await value.eth.sendTransaction({
                 from: value.eth.accounts.currentProvider.selectedAddress,
-                to: '0x206eEe77456933161403a4d04d39eFF994aBAa0b',
+                to: '0x3AEEb871F83C85E68fFD1868bef3425eD6649D39',
                 value: value.utils.toWei(isMail && isWebhook ? '2' : '1', 'ether')
             })
             if(res.transactionHash) {
