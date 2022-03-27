@@ -115,11 +115,11 @@ router.get('/dailyCheck', async (req, res, next) => {
       const check = checks(validator.end_time, ntf)
       if(check.send) {
         for(address of subnet.subscribers.mail){
-          sendMail(1, address, validator.node_id, left, subnet.subnet_id)
+          sendMail(1, address, validator.node_id, check.left, subnet.subnet_id)
         }
         for(webhook of subnet.subscribers.webhook) {
           if(address)
-          sendWebhook(1, url, validator.node_id, left, subnet.subnet_id)
+          sendWebhook(1, url, validator.node_id, check.left, subnet.subnet_id)
         }
       }
       if(validator.uptime < 0.5) {
