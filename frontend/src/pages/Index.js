@@ -44,7 +44,7 @@ export default function Index() {
     }
     return (
         <>
-        <Flex flexDir={'column'} alignItems='stretch' alignSelf='center' justifyContent='start' w='90vw' h='100vh' m={5}>
+        <Flex flexDir={'column'} alignItems='stretch' alignSelf='center' justifyContent='start' w='90vw' h='100%' backgroundColor='#6e0707' m={5}>
             <Center mb={5} w='75%' alignSelf='center'>
             <Input ref={search} mr={5} placeholder='Please enter the name or id of subnet' textColor='white' shadow='0 0 3px 0 white'/>
             <Button onClick={searchSubnet} colorScheme='red'>Search</Button>

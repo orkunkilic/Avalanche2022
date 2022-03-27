@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 function App({ initWalletConnection, disconnectWallet, account }){
   return (
-    <Box className="navbar" w='100vw' h='70px' backgroundColor='#6e0707' p='4' color='white' shadow='0 0 10px 2px white'>
+    <Box className="navbar" w='100vw' h='70px' position='fixed' zIndex='999' top='0' left='0' right='0' backgroundColor='#6e0707' p='4' color='white' shadow='0 0 10px 2px white'>
       <Flex flexDir='row' justifyContent='space-between' alignItems='stretch'>
         <Text fontSize='24' fontWeight='bold' as={Link} to='/'>ExpiryDator</Text>
         {account ? (

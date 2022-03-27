@@ -53,7 +53,7 @@ router.post('/register', async (req, res, next) => {
   }
   const tx = await axios.get(`https://api.covalenthq.com/v1/43113/transaction_v2/${tx_id}/?key=ckey_8ad51b914d3e4cec8f6ab99d9db`)
   const value = (tx.data.data.items[0].value) / 10**18
-  if(value < 0.1) {
+  if(value < 1) {
     return res.status(400).json({error: "Value is too low"})
   }
   
@@ -78,11 +78,11 @@ router.post('/subscribe', async (req, res, next) => {
   const tx = await axios.get(`https://api.covalenthq.com/v1/43113/transaction_v2/${tx_id}/?key=ckey_8ad51b914d3e4cec8f6ab99d9db`)
   const value = (tx.data.data.items[0].value) / 10**18
   if(mail && webhook) {
-    if(value < 0.02) {
+    if(value < 2) {
       return res.status(400).json({error: "Value is too low"})
     }
   } else {
-    if(value < 0.01) {
+    if(value < 1) {
       return res.status(400).json({error: "Value is too low"})
     }
   }
@@ -147,7 +147,7 @@ router.get('/dailyCheck', async (req, res, next) => {
   }
 
 
-  res.json({message: "done"})
+  res.json({message: "daily check done"})
 })
 
 

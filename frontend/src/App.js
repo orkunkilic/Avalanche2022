@@ -33,8 +33,10 @@ function App() {
 
   async function initWalletConnection() {
     const wal = await onboard.connectWallet()
-    await onboard.setChain({ chainId: '0xa869' })
-    setWallet(wal[0])
+    if(wal.length > 0) {
+      await onboard.setChain({ chainId: '0xa869' })
+      setWallet(wal[0])
+    }
   }
 
   async function disconnectWallet() {
@@ -46,20 +48,10 @@ function App() {
     setAccount(null)
   }
 
-  async function sendTransaction() {
-    console.log(web3)
-    console.log(account)
-    const tx = await web3.eth.sendTransaction({
-      from: account,
-      to: '0x206eEe77456933161403a4d04d39eFF994aBAa0b',
-      value: web3.utils.toWei('0.1', 'ether')
-    })
-    console.log(tx)
-  }
 
   return (
     <Web3Context.Provider value={web3}>
-    <Flex flexDir='column' className="App" backgroundColor='#6e0707' justifyContent='center'>
+    <Flex flexDir='column' className="App" justify='center' mt='70px' backgroundColor='#6e0707' height={'100%'} justifyContent='center'>
     <Navbar initWalletConnection={initWalletConnection} disconnectWallet={disconnectWallet} account={account}/>
     <Routes>
       <Route path="/" element= {

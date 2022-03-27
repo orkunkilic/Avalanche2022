@@ -12,7 +12,7 @@ const { sendMail, sendWebhook } = require('../functions/send');
 
  const getYearOldSubscribers = async () => {
     return await Subnet.find({
-      "subscribers.mail.subscribed_at": {$lt: (new Date()).valueOf() - (1000 * 60/*  * 60 * 24 * 365 */ )}
+      "subscribers.mail.subscribed_at": {$lt: (new Date()).valueOf() - (1000 * 60 * 60 * 24 * 365 )}
   
     }, {
       subscribers: 1,

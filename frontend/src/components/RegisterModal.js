@@ -25,7 +25,7 @@ export default function RegisterModal({isOpen, onClose, subnetDetails}) {
             const res = await value.eth.sendTransaction({
                 from: value.eth.accounts.currentProvider.selectedAddress,
                 to: '0x206eEe77456933161403a4d04d39eFF994aBAa0b',
-                value: value.utils.toWei('0.1', 'ether')
+                value: value.utils.toWei('1', 'ether')
             })
             if(res.transactionHash) {
                 setTx(res.transactionHash)
